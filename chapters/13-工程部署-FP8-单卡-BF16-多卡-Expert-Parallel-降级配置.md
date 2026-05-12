@@ -930,9 +930,9 @@ N_{\text{tokens}}
 | `FusedMoE` 中存在 `enable_eplb`、expert placement strategy、expert map、本地 expert 数等逻辑 | `vllm/model_executor/layers/fused_moe/layer.py` | `FusedMoE` | 源码直接确认 | 是 |
 | vLLM EP 文档说明 `--enable-expert-parallel` 启用 EP，EP size = TP × DP，EP 为实验性功能 | vLLM Expert Parallel Deployment docs | EP Configuration | 官方文档确认 | 是 |
 | vLLM EP 文档说明启用 EP 后 MoE expert layers across EP ranks 分片，attention layers 由 TP size 决定 | vLLM Expert Parallel Deployment docs | Layer Behavior with EP Enabled | 官方文档确认 | 是 |
-| 单卡 FP8 是否能承载 262K、高并发、多模态和 MTP | 运行环境 / 显存 / profiler | 实验验证 | 否 |
-| 当前机器上 MTP `method="mtp"` 与 `method="qwen3_next_mtp"` 的解析差异 | speculative config 源码 / 启动日志 | 待源码确认 | 否 |
-| 当前机器上 EP all-to-all backend 是否优于纯 TP | runtime benchmark | 实验验证 | 否 |
+| 单卡 FP8 是否能承载 262K、高并发、多模态和 MTP | 运行环境 / 显存 / profiler | N/A | 实验验证 | 否 |
+| 当前机器上 MTP `method="mtp"` 与 `method="qwen3_next_mtp"` 的解析差异 | speculative config 源码 / 启动日志 | 待运行确认 | 待源码确认 | 否 |
+| 当前机器上 EP all-to-all backend 是否优于纯 TP | runtime benchmark | N/A | 实验验证 | 否 |
 
 ---
 

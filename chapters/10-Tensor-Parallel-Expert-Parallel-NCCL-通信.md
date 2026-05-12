@@ -888,7 +888,7 @@ H
 | vLLM 官方 EP 文档明确 EP 是实验性功能，参数名和默认值可能变化 | vLLM Expert Parallel Deployment docs | Warning | 官方文档确认 | 是 |
 | Qwen3.6 在 v0.20.1 下开启 EP 后最终选择的 all-to-all backend | `vllm/model_executor/layers/fused_moe/runner`, runtime config | 待展开 | 待源码确认 | 否 |
 | Qwen3.6 shared expert 在 EP 下是否与 routed experts 完全融合到同一个 kernel | `fused_moe` backend / quant method | 待展开 | 待源码确认 | 否 |
-| 具体 NVIDIA 拓扑下 NCCL all-reduce / all-to-all 是否成为瓶颈 | 运行日志 / profiler | 实验验证 | 否 |
+| 具体 NVIDIA 拓扑下 NCCL all-reduce / all-to-all 是否成为瓶颈 | 运行日志 / profiler | N/A | 实验验证 | 否 |
 
 ---
 

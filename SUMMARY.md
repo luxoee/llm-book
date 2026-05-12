@@ -33,8 +33,3 @@
 - [第十三章：工程部署：FP8 单卡、BF16 多卡、Expert Parallel、降级配置](chapters/13-工程部署-FP8-单卡-BF16-多卡-Expert-Parallel-降级配置.md)
 - [第十四章：压测、监控、排障](chapters/14-压测-监控-排障.md)
 - [第十五章：总复盘与学习路线图](chapters/15-总复盘与学习路线图.md)
-
-## 发布附录
-
-- [商业化发布校验清单](publishing/release-checklist.md)
-- [深度审稿 Prompts](publishing/review-prompts.md)
