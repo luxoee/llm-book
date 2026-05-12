@@ -13,23 +13,25 @@ There is no package manifest, Makefile, test runner, build step, or configured l
 Useful inspection commands:
 
 ```bash
-# List all book chapters and source material
-find book raw -maxdepth 1 -type f -name '*.md' | sort
+# List all GitBook chapters, publishing material, and source material
+find chapters publishing raw -maxdepth 1 -type f -name '*.md' | sort
 
 # Check the top-level chapter headings
-grep -R '^# ' book raw --include='*.md'
+grep -R '^# ' README.md SUMMARY.md chapters publishing raw --include='*.md'
 
 # Check chapter sizes
-wc -l book/*.md raw/*.md
+wc -l README.md SUMMARY.md chapters/*.md publishing/*.md raw/*.md
 ```
 
 If a future change adds tooling, update this section with the actual build, lint, test, and single-test commands rather than inventing generic ones.
 
 ## Content structure
 
+- `README.md` is the GitBook landing page and commercial reader-facing introduction.
+- `SUMMARY.md` is the GitBook table of contents.
+- `chapters/01-...md` through `chapters/15-...md` are the curated chapter files.
+- `publishing/release-checklist.md` and `publishing/review-prompts.md` contain release review material.
 - `raw/ChatGPT-LLM 推理与架构.md` is the original long export/source document.
-- `book/README.md` is the table of contents for the split book.
-- `book/01-...md` through `book/15-...md` are the curated chapter files.
 
 The split chapters are the primary edited output. Use the raw file as source/reference material when checking continuity or recovering context, but avoid editing `raw/` unless the user explicitly asks to update the source export too.
 
@@ -67,6 +69,7 @@ Most chapters follow a repeated teaching pattern: analogy, mathematical intuitio
 ## Editing guidance
 
 - Make surgical Markdown edits; do not reformat unrelated chapters.
-- If updating the table of contents, keep `book/README.md` synchronized with the chapter filenames and headings.
+- If updating the table of contents, keep `SUMMARY.md` synchronized with the chapter filenames and headings.
 - If splitting or moving material, preserve links and chapter numbering.
-- Prefer editing the split chapter files in `book/`; mention if the raw export also appears stale rather than automatically rewriting it.
+- Prefer editing the split chapter files in `chapters/`; mention if the raw export also appears stale rather than automatically rewriting it.
+- Keep GitBook-facing publishing material in `README.md`, `SUMMARY.md`, and `publishing/`.

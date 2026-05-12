@@ -111,7 +111,7 @@ $$
 每个 scheduler step 有一个 token budget：
 
 $$
-\sum_i \Delta_i^{\text{scheduled}} \leq \text{max\_num\_scheduled\_tokens}
+\sum_i \Delta_i^{\text{scheduled}} \leq \mathrm{maxNumScheduledTokens}
 $$
 
 vLLM v0.20.1 源码中，`self.max_num_scheduled_tokens` 来自 `scheduler_config.max_num_scheduled_tokens`，如果未设置则使用 `scheduler_config.max_num_batched_tokens`；`schedule()` 中用 `token_budget = self.max_num_scheduled_tokens` 控制本轮能安排多少 token。([raw.githubusercontent.com](https://raw.githubusercontent.com/vllm-project/vllm/v0.20.1/vllm/v1/core/sched/scheduler.py))
@@ -148,7 +148,7 @@ $$
 $$
 \Delta_{\text{prefill}}
 =
-\min(P, B, \text{long\_prefill\_token\_threshold})
+\min(P, B, \mathrm{longPrefillTokenThreshold})
 $$
 
 vLLM v0.20.1 Scheduler 源码在 running 与 waiting 调度路径中都检查 `long_prefill_token_threshold`，当阈值大于 0 且小于 `num_new_tokens` 时，会把 `num_new_tokens` 截断到该阈值。([raw.githubusercontent.com](https://raw.githubusercontent.com/vllm-project/vllm/v0.20.1/vllm/v1/core/sched/scheduler.py))
@@ -750,7 +750,7 @@ $$
 $$
 \sum_i \Delta_i^{\text{scheduled}}
 \leq
-\text{max\_num\_scheduled\_tokens}
+\mathrm{maxNumScheduledTokens}
 $$
 
 **3. Chunked prefill**
@@ -760,8 +760,8 @@ $$
 =
 \min(
 P_{\text{remaining}},
-\text{token\_budget},
-\text{long\_prefill\_token\_threshold}
+\mathrm{tokenBudget},
+\mathrm{longPrefillTokenThreshold}
 )
 $$
 
@@ -1088,3 +1088,13 @@ hidden_states
 4. expert dispatch 为什么会成为 GPU / NCCL / kernel 优化难点？
 5. vLLM v0.20.1 的 Qwen3NextSparseMoeBlock 与 FusedMoE 如何映射？
 ```
+
+---
+
+**Sources:**
+
+- [Qwen/Qwen3.6-35B-A3B · Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B)
+- [Qwen3.5 & Qwen3.6 Usage Guide - vLLM Recipes](https://docs.vllm.ai/projects/recipes/en/latest/Qwen/Qwen3.5.html)
+- [vLLM Documentation](https://docs.vllm.ai/)
+- [vLLM v0.20.1 Scheduler source](https://github.com/vllm-project/vllm/blob/v0.20.1/vllm/v1/core/sched/scheduler.py)
+- [vLLM v0.20.1 KV cache manager source](https://github.com/vllm-project/vllm/blob/v0.20.1/vllm/v1/core/kv_cache_manager.py)

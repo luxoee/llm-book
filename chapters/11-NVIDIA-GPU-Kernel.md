@@ -88,7 +88,7 @@ Decode 每步每个请求通常只新增 1 个 token。GEMM 的 $N$ 变小，但
 
 $$
 o_t =
-\operatorname{softmax}
+\mathrm{softmax}
 \left(
 \frac{q_t K_{\le t}^{\top}}{\sqrt{d}}
 \right)
@@ -1106,3 +1106,13 @@ Scheduler.schedule
 4. GDN attention backend 如何不同于普通 KV attention？
 5. Qwen3.6 的 hybrid 架构在 vLLM v0.20.1 中如何被调度和执行？
 ```
+
+---
+
+**Sources:**
+
+- [NVIDIA CUDA C++ Programming Guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/)
+- [NVIDIA Tensor Cores](https://www.nvidia.com/en-us/data-center/tensor-cores/)
+- [Qwen/Qwen3.6-35B-A3B · Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B)
+- [vLLM v0.20.1 attention backends](https://github.com/vllm-project/vllm/tree/v0.20.1/vllm/v1/attention/backends)
+- [vLLM v0.20.1 fused MoE layers](https://github.com/vllm-project/vllm/tree/v0.20.1/vllm/model_executor/layers/fused_moe)

@@ -84,7 +84,7 @@ attention 输出：
 
 $$
 o_t =
-\operatorname{softmax}
+\mathrm{softmax}
 \left(
 \frac{q_t K_{\le t}^{\top}}{\sqrt{d}}
 \right)

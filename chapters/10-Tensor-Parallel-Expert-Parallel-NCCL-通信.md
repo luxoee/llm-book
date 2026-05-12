@@ -163,7 +163,7 @@ MoE 的输出可以抽象为：
 
 $$
 y =
-\sum_{e \in \operatorname{TopK}(r(h), 8)}
+\sum_{e \in \mathrm{TopK}(r(h), 8)}
 w_eE_e(h)
 +
 E_{\text{shared}}(h)
@@ -817,7 +817,7 @@ $$
 $$
 y_{\text{routed}}
 =
-\sum_{e \in \operatorname{TopK}(r(h), 8)}
+\sum_{e \in \mathrm{TopK}(r(h), 8)}
 w_eE_e(h)
 $$
 

@@ -47,7 +47,7 @@
 传统 causal LM 的目标是建模条件概率：
 
 $$
-P(x_{1:T})=\prod_{t=1}^{T}P(x_t \mid x_{<t})
+P(x_{1:T})=\prod_{t=1}^{T}P(x_t \mid x_{1:t-1})
 $$
 
 生成时，我们已经有上下文 $x_{1:t}$，模型输出下一个 token 的分布：
@@ -75,7 +75,7 @@ $$
 最后一层 hidden state $h_t$ 会被投影到 vocabulary 维度：
 
 $$
-\text{logits}_t = h_t W_{\text{lm\_head}}^\top
+\mathrm{logits}_t = h_t W_{\mathrm{lmHead}}^\top
 $$
 
 然后通常经过 temperature、top-k、top-p、presence penalty、repetition penalty 等采样策略，选出下一个 token。
@@ -83,11 +83,11 @@ $$
 对传统 dense Transformer 来说，每层大致是：
 
 $$
-h \leftarrow h + \text{SelfAttention}(\text{Norm}(h))
+h \leftarrow h + \mathrm{SelfAttention}(\mathrm{Norm}(h))
 $$
 
 $$
-h \leftarrow h + \text{MLP}(\text{Norm}(h))
+h \leftarrow h + \mathrm{MLP}(\mathrm{Norm}(h))
 $$
 
 但对 Qwen3.6-35B-A3B，这个“SelfAttention + MLP”只能当作入门抽象。实际语言主干是 Gated DeltaNet / Gated Attention 与 MoE 的混合层，且每 token 只激活部分 expert。模型卡确认其 MoE 为 256 experts，激活 8 routed experts + 1 shared expert。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
@@ -402,19 +402,19 @@ vLLM 的价值在于把这些问题系统化：PagedAttention 管 KV cache，con
 **1. 自回归分解**
 
 $$
-P(x_{1:T})=\prod_{t=1}^{T}P(x_t \mid x_{<t})
+P(x_{1:T})=\prod_{t=1}^{T}P(x_t \mid x_{1:t-1})
 $$
 
 **2. 下一个 token 分布**
 
 $$
-P(x_{t+1}\mid x_{\le t})=\text{softmax}(\text{logits}_t)
+P(x_{t+1}\mid x_{\le t})=\mathrm{softmax}(\mathrm{logits}_t)
 $$
 
 **3. LM head**
 
 $$
-\text{logits}_t = h_t W_{\text{lm\_head}}^\top
+\mathrm{logits}_t = h_t W_{\mathrm{lmHead}}^\top
 $$
 
 **4. Temperature**

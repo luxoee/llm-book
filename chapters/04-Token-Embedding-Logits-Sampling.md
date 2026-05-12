@@ -660,7 +660,7 @@ $$
 **6. Top-k**
 
 $$
-\mathcal{S}_k = \text{TopK}(z, k)
+\mathcal{S}_k = \mathrm{TopK}(z, k)
 $$
 
 只在 $\mathcal{S}_k$ 内采样。
