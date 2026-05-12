@@ -46,19 +46,19 @@
 
 传统 causal LM 的目标是建模条件概率：
 
-$$
+```math
 P(x_{1:T})=\prod_{t=1}^{T}P(x_t \mid x_{1:t-1})
-$$
+```
 
 生成时，我们已经有上下文 $x_{1:t}$，模型输出下一个 token 的分布：
 
-$$
+```math
 P(x_{t+1} \mid x_{1:t})
-$$
+```
 
 模型并不直接“理解句子”，而是做这个流程：
 
-$$
+```math
 \text{tokens}
 \rightarrow
 \text{embeddings}
@@ -70,25 +70,25 @@ $$
 \text{probabilities}
 \rightarrow
 \text{sample next token}
-$$
+```
 
 最后一层 hidden state $h_t$ 会被投影到 vocabulary 维度：
 
-$$
+```math
 \mathrm{logits}_t = h_t W_{\mathrm{lmHead}}^\top
-$$
+```
 
 然后通常经过 temperature、top-k、top-p、presence penalty、repetition penalty 等采样策略，选出下一个 token。
 
 对传统 dense Transformer 来说，每层大致是：
 
-$$
+```math
 h \leftarrow h + \mathrm{SelfAttention}(\mathrm{Norm}(h))
-$$
+```
 
-$$
+```math
 h \leftarrow h + \mathrm{MLP}(\mathrm{Norm}(h))
-$$
+```
 
 但对 Qwen3.6-35B-A3B，这个“SelfAttention + MLP”只能当作入门抽象。实际语言主干是 Gated DeltaNet / Gated Attention 与 MoE 的混合层，且每 token 只激活部分 expert。模型卡确认其 MoE 为 256 experts，激活 8 routed experts + 1 shared expert。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
@@ -190,17 +190,17 @@ Qwen3.6 的差异在于：不是所有层都走 full attention。模型卡显示
 
 例如 dense BF16 权重大约是：
 
-$$
+```math
 \text{weight memory} \approx \text{num parameters} \times 2 \text{ bytes}
-$$
+```
 
 35B 参数的 BF16 权重粗略是 70GB 级别；FP8 checkpoint 则显著降低权重显存压力。Qwen3.6 有官方 FP8 版本，vLLM recipe 也把 Qwen3.6-35B-A3B / FP8 列为 Hugging Face 入口。([vLLM](https://docs.vllm.ai/projects/recipes/en/latest/Qwen/Qwen3.5.html))
 
 但长上下文下，KV cache 会随：
 
-$$
+```math
 \text{layers} \times \text{tokens} \times \text{kv heads} \times \text{head dim}
-$$
+```
 
 增长。Qwen3.6 原生上下文是 262,144 tokens，模型卡还说可扩展到 1,010,000 tokens；这意味着即使权重量化，长上下文 KV cache 仍可能成为主要显存压力。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
@@ -401,31 +401,31 @@ vLLM 的价值在于把这些问题系统化：PagedAttention 管 KV cache，con
 
 **1. 自回归分解**
 
-$$
+```math
 P(x_{1:T})=\prod_{t=1}^{T}P(x_t \mid x_{1:t-1})
-$$
+```
 
 **2. 下一个 token 分布**
 
-$$
+```math
 P(x_{t+1}\mid x_{\le t})=\mathrm{softmax}(\mathrm{logits}_t)
-$$
+```
 
 **3. LM head**
 
-$$
+```math
 \mathrm{logits}_t = h_t W_{\mathrm{lmHead}}^\top
-$$
+```
 
 **4. Temperature**
 
-$$
+```math
 p_i = \frac{\exp(z_i / \tau)}{\sum_j \exp(z_j / \tau)}
-$$
+```
 
 **5. KV cache 粗略增长**
 
-$$
+```math
 \text{KV memory} \propto
 \text{num layers}
 \times
@@ -438,7 +438,7 @@ $$
 2
 \times
 \text{bytes per element}
-$$
+```
 
 这里的 $2$ 来自 K 和 V 两份缓存。
 

@@ -82,14 +82,14 @@ V = V_cache[physical_block_id, kv_head, offset_in_block, :]
 
 更抽象地说：
 
-$$
+```math
 \mathrm{physicalBlock} =
 \mathrm{blockTable}[\text{seq}, \lfloor t / B \rfloor]
-$$
+```
 
-$$
+```math
 \text{offset} = t \bmod B
-$$
+```
 
 其中 $B$ 是 block size。
 
@@ -593,27 +593,27 @@ linear_attention:
 
 **1. token 到逻辑 block**
 
-$$
+```math
 \mathrm{logicalBlock} = \left\lfloor \frac{t}{B} \right\rfloor
-$$
+```
 
 **2. token 在 block 内 offset**
 
-$$
+```math
 \text{offset} = t \bmod B
-$$
+```
 
 **3. block table 映射**
 
-$$
+```math
 \mathrm{physicalBlock}
 =
 \mathrm{blockTable}[\text{seq}, \mathrm{logicalBlock}]
-$$
+```
 
 **4. Qwen3.6 Gated Attention KV 粗估**
 
-$$
+```math
 \text{KV bytes/token}
 =
 10
@@ -627,17 +627,17 @@ $$
 2
 =
 20480
-$$
+```
 
 **5. blocks 数量粗估**
 
-$$
+```math
 \mathrm{numBlocks}
 =
 \left\lceil
 \frac{\mathrm{numTokens}}{\mathrm{blockSize}}
 \right\rceil
-$$
+```
 
 ---
 

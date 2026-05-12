@@ -42,17 +42,17 @@
 
 传统 attention 中，每层都会从 hidden state 投影出：
 
-$$
+```math
 Q = XW_Q,\quad K = XW_K,\quad V = XW_V
-$$
+```
 
 如果当前序列长度是 $T$，每次 decode 都重新处理全部 $T$ 个 token，那么历史 token 的 K/V 会被反复计算。
 
 第 $t$ 步 decode 时，理论上你只新增了一个 token，但如果不用 cache，就会重新算：
 
-$$
+```math
 K_{1:t}, V_{1:t}
-$$
+```
 
 这会造成大量重复计算。
 
@@ -60,36 +60,36 @@ $$
 
 使用 KV Cache 后，历史部分已经保存：
 
-$$
+```math
 K_{\le t-1}, V_{\le t-1}
-$$
+```
 
 当前步只需要算新 token：
 
-$$
+```math
 q_t, k_t, v_t
-$$
+```
 
 然后追加：
 
-$$
+```math
 K_{\le t} = [K_{\le t-1}; k_t]
-$$
+```
 
-$$
+```math
 V_{\le t} = [V_{\le t-1}; v_t]
-$$
+```
 
 attention 输出：
 
-$$
+```math
 o_t =
 \mathrm{softmax}
 \left(
 \frac{q_t K_{\le t}^{\top}}{\sqrt{d}}
 \right)
 V_{\le t}
-$$
+```
 
 所以 decode 阶段的计算从“反复重算历史 K/V”变成“读取历史 K/V”。
 
@@ -99,7 +99,7 @@ $$
 
 对一个 full-attention 层，KV cache 粗略显存是：
 
-$$
+```math
 \text{KV bytes}
 =
 T
@@ -111,7 +111,7 @@ H_{kv}
 D
 \times
 B_{\text{dtype}}
-$$
+```
 
 其中：
 
@@ -125,7 +125,7 @@ $$
 
 对多层模型：
 
-$$
+```math
 \text{Total KV bytes}
 =
 T
@@ -139,7 +139,7 @@ H_{kv}
 D
 \times
 B_{\text{dtype}}
-$$
+```
 
 对 Qwen3.6，**只按 Gated Attention 层算**：
 
@@ -152,7 +152,7 @@ dtype = BF16/FP16 ≈ 2 bytes
 
 所以每 token 的 Gated Attention KV cache 粗略为：
 
-$$
+```math
 10
 \times
 2
@@ -164,17 +164,17 @@ $$
 2
 =
 20480\ \text{bytes}
-$$
+```
 
 也就是每 token 约 **20 KB**，仅包含 10 个 Gated Attention 层的 K/V cache。
 
 如果上下文是 262,144 tokens：
 
-$$
+```math
 262144 \times 20480
 \approx
 5.37\ \text{GB}
-$$
+```
 
 这是 **单条序列、仅 Gated Attention KV、BF16/FP16、未计 block metadata / padding / fragmentation / GDN state / MoE / workspace / 多模态 / TP 复制细节** 的粗略账本。Qwen3.6 的层布局、KV heads、head dim 和上下文长度来自模型卡；vLLM 源码确认 Qwen3.6 兼容路径会把 `linear_attention` 与 `full_attention` 分流，full attention 才走 `Qwen3NextAttention`。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
@@ -182,7 +182,7 @@ $$
 
 如果你错误地按 40 层 full attention 估算：
 
-$$
+```math
 40
 \times
 2
@@ -194,15 +194,15 @@ $$
 2
 =
 81920\ \text{bytes/token}
-$$
+```
 
 262K tokens 就会粗略变成：
 
-$$
+```math
 262144 \times 81920
 \approx
 21.47\ \text{GB}
-$$
+```
 
 这个数字对 Qwen3.6 的 **普通 full-attention KV cache** 是错误心智模型，因为它把 30 个 Gated DeltaNet 层也当成了 full attention KV cache。正确做法是：
 
@@ -403,9 +403,9 @@ bytes = 2
 
 如果每条请求平均上下文 $T$，并发请求数是 $B$，那么 full-attention KV cache 粗略变成：
 
-$$
+```math
 B \times T \times L_{\text{attn}} \times 2 \times H_{kv} \times D \times B_{\text{dtype}}
-$$
+```
 
 这就是为什么长上下文和高并发天然冲突。
 
@@ -683,7 +683,7 @@ vLLM v0.20.1 中，`Qwen3_5DecoderLayer` 明确分流 `linear_attention` 和 `fu
 
 **1. 单层 KV cache**
 
-$$
+```math
 \text{KV bytes}
 =
 T
@@ -695,11 +695,11 @@ H_{kv}
 D
 \times
 B_{\text{dtype}}
-$$
+```
 
 **2. 多层 KV cache**
 
-$$
+```math
 \text{Total KV bytes}
 =
 T
@@ -713,11 +713,11 @@ H_{kv}
 D
 \times
 B_{\text{dtype}}
-$$
+```
 
 **3. Qwen3.6 Gated Attention KV 每 token 粗估**
 
-$$
+```math
 10
 \times
 2
@@ -729,21 +729,21 @@ $$
 2
 =
 20480\ \text{bytes/token}
-$$
+```
 
 **4. Qwen3.6 262K Gated Attention KV 粗估**
 
-$$
+```math
 262144
 \times
 20480
 \approx
 5.37\ \text{GB}
-$$
+```
 
 **5. 并发下的 KV cache**
 
-$$
+```math
 \text{Total KV bytes}
 =
 B
@@ -759,7 +759,7 @@ H_{kv}
 D
 \times
 B_{\text{dtype}}
-$$
+```
 
 ---
 

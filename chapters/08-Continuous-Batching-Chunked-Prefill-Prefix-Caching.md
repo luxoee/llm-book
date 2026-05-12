@@ -95,10 +95,10 @@ num_tokens_with_spec
 
 可以把它写成：
 
-$$
+```math
 \Delta_i =
 N^{\text{target}}_i - N^{\text{computed}}_i
-$$
+```
 
 其中：
 
@@ -110,9 +110,9 @@ $$
 
 每个 scheduler step 有一个 token budget：
 
-$$
+```math
 \sum_i \Delta_i^{\text{scheduled}} \leq \mathrm{maxNumScheduledTokens}
-$$
+```
 
 vLLM v0.20.1 源码中，`self.max_num_scheduled_tokens` 来自 `scheduler_config.max_num_scheduled_tokens`，如果未设置则使用 `scheduler_config.max_num_batched_tokens`；`schedule()` 中用 `token_budget = self.max_num_scheduled_tokens` 控制本轮能安排多少 token。([raw.githubusercontent.com](https://raw.githubusercontent.com/vllm-project/vllm/v0.20.1/vllm/v1/core/sched/scheduler.py))
 
@@ -120,18 +120,18 @@ vLLM v0.20.1 源码中，`self.max_num_scheduled_tokens` 来自 `scheduler_confi
 
 传统静态 batch：
 
-$$
+```math
 \text{batch} = \{\text{同一时刻开始的一组请求}\}
-$$
+```
 
 Continuous batching：
 
-$$
+```math
 \text{batch}_t =
 \{\text{本轮能推进的 running requests}\}
 \cup
 \{\text{本轮能接纳的 waiting requests}\}
-$$
+```
 
 也就是说，batch 不是固定的。每个 GPU step 都可以加入新请求、继续旧请求、暂停或抢占请求。
 
@@ -139,17 +139,17 @@ $$
 
 如果一个 prompt 还剩 $P$ 个 token 没 prefill，而本轮剩余 token budget 是 $B$，则本轮只安排：
 
-$$
+```math
 \Delta_{\text{prefill}} = \min(P, B)
-$$
+```
 
 如果配置了 `long_prefill_token_threshold`，源码还会进一步限制单次调度的 token 数：
 
-$$
+```math
 \Delta_{\text{prefill}}
 =
 \min(P, B, \mathrm{longPrefillTokenThreshold})
-$$
+```
 
 vLLM v0.20.1 Scheduler 源码在 running 与 waiting 调度路径中都检查 `long_prefill_token_threshold`，当阈值大于 0 且小于 `num_new_tokens` 时，会把 `num_new_tokens` 截断到该阈值。([raw.githubusercontent.com](https://raw.githubusercontent.com/vllm-project/vllm/v0.20.1/vllm/v1/core/sched/scheduler.py))
 
@@ -163,15 +163,15 @@ prefix + suffix
 
 且 prefix 对应的 KV blocks 已经在 cache 中，那么实际需要重新 prefill 的 token 数从：
 
-$$
+```math
 T_{\text{prompt}}
-$$
+```
 
 变成：
 
-$$
+```math
 T_{\text{prompt}} - T_{\text{cached}}
-$$
+```
 
 vLLM 官方 prefix caching 文档说明，vLLM 会缓存已处理请求的 KV-cache blocks，新请求有相同 prefix 时复用这些 blocks；vLLM V1 使用 hash-based 方法，block hash 由 parent hash、block tokens，以及 LoRA ID、多模态输入 hash、cache salt 等 extra hashes 组成。([docs.vllm.ai](https://docs.vllm.ai/en/latest/design/prefix_caching/))
 
@@ -323,14 +323,14 @@ request D: prompt 128K 等待进入
 
 显存压力不是单个请求决定的，而是：
 
-$$
+```math
 \text{cache usage}
 =
 \sum_i
 \text{active tokens}_i
 \times
 \text{cache bytes per token}
-$$
+```
 
 vLLM metrics 文档列出 `vllm:kv_cache_usage_perc` 作为已使用 KV cache blocks 的比例，并暴露 `vllm:num_requests_running`、`vllm:num_requests_waiting`、TTFT、inter-token latency、prefill time、decode time 等指标。([docs.vllm.ai](https://docs.vllm.ai/en/latest/design/metrics/))
 
@@ -738,24 +738,24 @@ Qwen3.6 上，调度器必须同时兼顾 Gated Attention KV、Gated DeltaNet st
 
 **1. 请求剩余计算量**
 
-$$
+```math
 \Delta_i =
 N^{\text{target}}_i
 -
 N^{\text{computed}}_i
-$$
+```
 
 **2. 每轮 token budget**
 
-$$
+```math
 \sum_i \Delta_i^{\text{scheduled}}
 \leq
 \mathrm{maxNumScheduledTokens}
-$$
+```
 
 **3. Chunked prefill**
 
-$$
+```math
 \Delta_{\text{prefill}}
 =
 \min(
@@ -763,28 +763,28 @@ P_{\text{remaining}},
 \mathrm{tokenBudget},
 \mathrm{longPrefillTokenThreshold}
 )
-$$
+```
 
 **4. Prefix caching 节省量**
 
-$$
+```math
 T_{\text{recompute}}
 =
 T_{\text{prompt}}
 -
 T_{\text{cached}}
-$$
+```
 
 **5. KV cache 活跃占用粗略关系**
 
-$$
+```math
 \text{cache usage}
 \propto
 \sum_i
 \text{active tokens}_i
 \times
 \text{cache bytes per token}
-$$
+```
 
 ---
 

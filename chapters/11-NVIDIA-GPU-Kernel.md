@@ -55,12 +55,12 @@ Sampling:
 
 一个 kernel 的性能可以粗略看两个量：
 
-$$
+```math
 \text{Arithmetic Intensity}
 =
 \frac{\text{FLOPs}}
 {\text{Bytes moved from/to memory}}
-$$
+```
 
 如果一个 kernel 每读 1 byte 能做很多 FLOPs，它更可能是 **compute-bound**；如果读很多数据但每个数据只算很少，它更可能是 **memory-bound**。
 
@@ -68,9 +68,9 @@ $$
 
 Prefill 一次处理很多 prompt tokens。以线性层为例：
 
-$$
+```math
 Y = XW
-$$
+```
 
 其中：
 
@@ -86,14 +86,14 @@ Y: [N, O]
 
 Decode 每步每个请求通常只新增 1 个 token。GEMM 的 $N$ 变小，但 attention 要读历史 KV cache：
 
-$$
+```math
 o_t =
 \mathrm{softmax}
 \left(
 \frac{q_t K_{\le t}^{\top}}{\sqrt{d}}
 \right)
 V_{\le t}
-$$
+```
 
 当上下文是 262K，当前 query 很小，历史 K/V 很大。于是 decode 的瓶颈经常变成：
 
@@ -108,13 +108,13 @@ $$
 
 MoE expert 的数学上像很多 MLP：
 
-$$
+```math
 E_e(h)=W_{2,e}\phi(W_{1,e}h)
-$$
+```
 
 但执行上不是一个大 dense GEMM，而是：
 
-$$
+```math
 \text{router}
 \rightarrow
 \text{top-k}
@@ -124,13 +124,13 @@ $$
 \text{expert GEMM}
 \rightarrow
 \text{combine}
-$$
+```
 
 Qwen3.6 每 token 选 8 个 routed experts，再走 1 个 shared expert。也就是说，本轮如果有 $N$ 个 tokens，routed expert 的 token-expert 对数量是：
 
-$$
+```math
 N \times 8
-$$
+```
 
 这会产生动态重排和不规则 expert GEMM，而不仅仅是一个 `[N, H] @ [H, O]`。vLLM v0.20.1 的 `Qwen3NextSparseMoeBlock` 中 router 是 `ReplicatedLinear(hidden_size, num_experts)`，然后把 `router_logits` 交给 `FusedMoE`；`FusedMoE` 目录下包含 router、experts、runner、prepare/finalize、all2all utils、flashinfer/cutlass MoE 等子路径，说明 MoE 是专门的执行子系统。([github.com](https://github.com/vllm-project/vllm/blob/v0.20.1/vllm/model_executor/models/qwen3_next.py)) ([github.com](https://github.com/vllm-project/vllm/tree/v0.20.1/vllm/model_executor/layers/fused_moe))
 
@@ -683,30 +683,30 @@ vLLM v0.20.1 源码入口：`Qwen3NextAttention`、`GatedDeltaNetAttention`、`Q
 
 **1. 算术强度**
 
-$$
+```math
 \text{Arithmetic Intensity}
 =
 \frac{\text{FLOPs}}
 {\text{Bytes moved}}
-$$
+```
 
 **2. GEMM FLOPs 粗估**
 
-$$
+```math
 \text{FLOPs}
 \approx
 2M N K
-$$
+```
 
 对：
 
-$$
+```math
 C_{M \times N} = A_{M \times K} B_{K \times N}
-$$
+```
 
 **3. Attention decode 读取量直觉**
 
-$$
+```math
 \text{KV read bytes}
 \propto
 T_{\text{context}}
@@ -720,11 +720,11 @@ H_{kv}
 D
 \times
 B_{\text{dtype}}
-$$
+```
 
 **4. Qwen3.6 Gated Attention KV 每 token 粗估**
 
-$$
+```math
 10
 \times
 2
@@ -736,21 +736,21 @@ $$
 2
 =
 20480\ \text{bytes/token}
-$$
+```
 
 **5. MoE routed token-expert 对数量**
 
-$$
+```math
 N_{\text{token-expert}}
 =
 N_{\text{tokens}}
 \times
 8
-$$
+```
 
 **6. MoE dispatch traffic 粗估**
 
-$$
+```math
 \text{traffic}
 \propto
 N
@@ -760,13 +760,13 @@ k
 H
 \times
 B_{\text{dtype}}
-$$
+```
 
 其中 Qwen3.6 中：
 
-$$
+```math
 k=8,\quad H=2048
-$$
+```
 
 ---
 

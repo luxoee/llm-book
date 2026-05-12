@@ -77,21 +77,21 @@ token id = 101
 
 设 vocabulary size 是 $V$，hidden size 是 $H$，embedding table 是：
 
-$$
+```math
 E \in \mathbb{R}^{V \times H}
-$$
+```
 
 某个 token id 为 $i$，它的 embedding 是：
 
-$$
+```math
 x_i = E[i]
-$$
+```
 
 对 Qwen3.6-35B-A3B，模型卡给出 hidden dimension 为 2048，token embedding 为 248,320 padded，因此可以把 embedding table 理解成接近：
 
-$$
+```math
 E \in \mathbb{R}^{248320 \times 2048}
-$$
+```
 
 注意这里的 248,320 是 padded vocabulary size，不一定等于 tokenizer 原始词表语义上的“自然词数”。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
@@ -99,47 +99,47 @@ $$
 
 最后一层 hidden state：
 
-$$
+```math
 h_t \in \mathbb{R}^{H}
-$$
+```
 
 LM head 权重：
 
-$$
+```math
 W_{\text{lm}} \in \mathbb{R}^{V \times H}
-$$
+```
 
 logits：
 
-$$
+```math
 z_t = W_{\text{lm}} h_t
-$$
+```
 
 所以：
 
-$$
+```math
 z_t \in \mathbb{R}^{V}
-$$
+```
 
 对 Qwen3.6，单个 token 的 logits 可以理解成：
 
-$$
+```math
 z_t \in \mathbb{R}^{248320}
-$$
+```
 
 vLLM v0.20.1 的 `Qwen3_5ForCausalLMBase` 在最后一个 pipeline rank 上，如果没有 tie word embedding，会创建 `ParallelLMHead(config.vocab_size, config.hidden_size)`；随后 `compute_logits` 调用 `self.logits_processor(self.lm_head, hidden_states)`。([GitHub](https://github.com/vllm-project/vllm/blob/v0.20.1/vllm/model_executor/models/qwen3_5.py))
 
 ### 4. Softmax 把 logits 变概率
 
-$$
+```math
 p_i = \frac{\exp(z_i)}{\sum_{j=1}^{V}\exp(z_j)}
-$$
+```
 
 如果加入 temperature：
 
-$$
+```math
 p_i = \frac{\exp(z_i / \tau)}{\sum_{j=1}^{V}\exp(z_j / \tau)}
-$$
+```
 
 其中：
 
@@ -309,9 +309,9 @@ logits
 
 Qwen3.6 的 token embedding 是 248,320 padded，hidden size 是 2048。按 BF16 粗略估算：
 
-$$
+```math
 248320 \times 2048 \times 2 \approx 1.02 \text{ GB}
-$$
+```
 
 这只是 token embedding 一项的粗估，不包括 LM head 是否 tied、MoE expert 权重、attention/GDN 参数、vision encoder、KV cache、runtime workspace 等。Qwen3.6 的 embedding 和 LM output 维度来自模型卡；是否 tie word embeddings 则由 vLLM 源码中的 `config.tie_word_embeddings` 分支决定。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
@@ -329,9 +329,9 @@ dtype = FP32 for sampling
 
 那么 logits 大小粗略为：
 
-$$
+```math
 128 \times 248320 \times 4 \approx 127 \text{ MB}
-$$
+```
 
 这解释了为什么 sampler 会关注 dtype、in-place 修改、top-k/top-p kernel、logprobs 是否返回等细节。vLLM v1 sampler 源码中明确会将 logits 转成 float32，并且 sampling / logprobs 过程会根据请求需求保留或处理 logits。([GitHub](https://raw.githubusercontent.com/vllm-project/vllm/v0.20.1/vllm/v1/sample/sampler.py))
 
@@ -629,51 +629,51 @@ logprobs: potentially huge memory/output cost
 
 **1. Embedding lookup**
 
-$$
+```math
 x_i = E[i]
-$$
+```
 
 **2. Hidden state 到 logits**
 
-$$
+```math
 z_t = W_{\text{lm}} h_t
-$$
+```
 
 **3. Softmax**
 
-$$
+```math
 p_i = \frac{\exp(z_i)}{\sum_j \exp(z_j)}
-$$
+```
 
 **4. Temperature softmax**
 
-$$
+```math
 p_i = \frac{\exp(z_i / \tau)}{\sum_j \exp(z_j / \tau)}
-$$
+```
 
 **5. Greedy decoding**
 
-$$
+```math
 x_{t+1} = \arg\max_i z_i
-$$
+```
 
 **6. Top-k**
 
-$$
+```math
 \mathcal{S}_k = \mathrm{TopK}(z, k)
-$$
+```
 
 只在 $\mathcal{S}_k$ 内采样。
 
 **7. Top-p / nucleus sampling**
 
-$$
+```math
 \mathcal{S}_p =
 \min \left\{
 S:
 \sum_{i \in S} p_i \ge p
 \right\}
-$$
+```
 
 只在累计概率达到阈值 $p$ 的候选集合中采样。
 
