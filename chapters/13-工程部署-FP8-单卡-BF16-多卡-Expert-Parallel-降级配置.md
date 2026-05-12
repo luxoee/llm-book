@@ -11,6 +11,13 @@
 
 对 **Qwen/Qwen3.6-35B-A3B**，部署时必须始终记住：它是带 Vision Encoder 的 causal LM，35B total / 3B activated，hidden size 2048，40 层，结构是 `10 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE))`，MoE 为 256 experts、8 routed + 1 shared expert，原生上下文 262,144 tokens，可扩展到 1,010,000 tokens。官方模型卡还明确提示：如果遇到 OOM，可以降低 context window，但建议至少保持 128K 以保留复杂任务能力。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 把前 12 章的模型结构、显存、调度、MoE、多卡和 GPU 视角落成部署选择。
+- 帮你区分单卡 FP8、BF16 TP=8、text-only、多模态、MTP、Expert Parallel 的适用边界。
+- 给出上线前要检查的显存、上下文、并发、TTFT、TPOT、OOM 和回滚条件。
+- 明确哪些结论来自官方命令，哪些必须在你的硬件和 workload 上验证。
+
 ---
 
 ## 一、生活类比
@@ -54,6 +61,19 @@ MTP：
 Expert Parallel：
   主要解决 MoE experts 分布和专家计算/通信效率问题
 ```
+
+### 部署决策树
+
+| 目标场景 | 优先配置 | 主要收益 | 主要风险 | 验证重点 |
+|---|---|---|---|---|
+| 本地功能验证 / 小上下文服务 | FP8 单卡 | 降低权重显存门槛 | KV/GDN state、workspace、Vision Encoder 仍会占显存 | 是否能启动、短上下文 TTFT/TPOT、OOM 边界 |
+| 纯文本生产服务 | BF16/FP8 + `--language-model-only` | 释放多模态相关显存，减少 profiling 压力 | 不能服务 image/video prompt | text-only workload 的 P50/P99 与 KV usage |
+| 多模态服务 | 保留 Vision Encoder，单独分池 | 支持 image/video 输入 | encoder budget、processor cache、显存波动 | text-only 与 multimodal 分开压测 |
+| 262K 长上下文主服务 | BF16 多卡 TP=8 起步 | 最接近官方 recipe 的长上下文路径 | KV/GDN state、NCCL、backend 选择 | 128K/262K prompt、并发阶梯、preemption |
+| MoE 多卡优化 | TP + EP 候选 | expert 分布更灵活 | all-to-all、expert imbalance、实验性参数 | EP off/on 对照、per-rank util、all-to-all 时间 |
+| 低延迟 decode 优化 | MTP off/on 对照 | 可能降低 TPOT | speculative tokens 占 cache/state，可能伤高并发吞吐 | accepted tokens、TPOT、KV usage、吞吐回归 |
+
+这张表不是替代压测，而是帮助你决定先测哪条路径。
 
 ---
 
@@ -740,6 +760,21 @@ text-only 和 multimodal 混池
   多模态单独建服务池和压测
 ```
 
+### 6. 发布前验收表
+
+| 验收项 | 最低记录内容 | 通过标准 | 不通过时的动作 |
+|---|---|---|---|
+| 启动成功 | 完整启动命令、vLLM 版本、GPU 型号、dtype、TP/EP 配置 | 无 OOM，日志中 backend / block 数清晰 | 降 `max_model_len`、改 text-only、降低并发或换多卡 |
+| 上下文边界 | 32K / 128K / 262K 单请求结果 | 目标上下文能稳定返回，TTFT 可接受 | 降上下文、启用 chunked prefill、检查 cache 预算 |
+| 并发阶梯 | concurrency 1 / 8 / 32 / 目标值 | waiting 不持续堆积，KV usage 不长期贴近 1 | 降并发、增加 GPU、缩短 output、拆服务池 |
+| TTFT / TPOT | p50 / p90 / p99 与 workload | 达到业务 SLA，且瓶颈能解释 | 分别看 queue、prefill、decode、backend、MoE、NCCL |
+| OOM 边界 | 启动、prefill、decode、MTP、多模态各阶段 | OOM 模式已知且有降级策略 | 限 prompt/output、关 MTP、降 max len、切 text-only |
+| MTP off/on | accepted tokens、TPOT、throughput、KV usage | 低延迟收益大于 cache 成本 | 高并发吞吐回退时关闭或降低 speculative tokens |
+| EP off/on | per-rank util、all-to-all time、tokens/s | EP 在目标拓扑和 workload 下有净收益 | 回退纯 TP 或换 all-to-all backend |
+| 回滚方案 | 可执行的保守启动命令 | 出问题时能快速恢复服务 | 保留 P1/P2/P3 降级配置 |
+
+这张表应该随压测结果一起保存，作为 GitBook 之外的上线记录。
+
 ---
 
 ## 十、本章总结
@@ -930,9 +965,9 @@ N_{\text{tokens}}
 | `FusedMoE` 中存在 `enable_eplb`、expert placement strategy、expert map、本地 expert 数等逻辑 | `vllm/model_executor/layers/fused_moe/layer.py` | `FusedMoE` | 源码直接确认 | 是 |
 | vLLM EP 文档说明 `--enable-expert-parallel` 启用 EP，EP size = TP × DP，EP 为实验性功能 | vLLM Expert Parallel Deployment docs | EP Configuration | 官方文档确认 | 是 |
 | vLLM EP 文档说明启用 EP 后 MoE expert layers across EP ranks 分片，attention layers 由 TP size 决定 | vLLM Expert Parallel Deployment docs | Layer Behavior with EP Enabled | 官方文档确认 | 是 |
-| 单卡 FP8 是否能承载 262K、高并发、多模态和 MTP | 运行环境 / 显存 / profiler | N/A | 实验验证 | 否 |
-| 当前机器上 MTP `method="mtp"` 与 `method="qwen3_next_mtp"` 的解析差异 | speculative config 源码 / 启动日志 | 待运行确认 | 待源码确认 | 否 |
-| 当前机器上 EP all-to-all backend 是否优于纯 TP | runtime benchmark | N/A | 实验验证 | 否 |
+| 单卡 FP8 是否能承载 262K、高并发、多模态和 MTP | 运行环境 / 显存 / profiler | N/A | 需按环境验证 | 否 |
+| 当前机器上 MTP `method="mtp"` 与 `method="qwen3_next_mtp"` 的解析差异 | speculative config 源码 / 启动日志 | 待运行确认 | 待运行确认 | 否 |
+| 当前机器上 EP all-to-all backend 是否优于纯 TP | runtime benchmark | N/A | 需按环境验证 | 否 |
 
 ---
 

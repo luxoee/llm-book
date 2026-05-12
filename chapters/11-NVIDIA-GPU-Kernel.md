@@ -1,7 +1,11 @@
 # 第十一章：NVIDIA GPU Kernel
-## HBM、SM、Tensor Core、CUDA Kernel、MoE GEMM、Attention Backend
 
-本章把前面学过的 **Attention / Gated DeltaNet / MoE / MTP / Scheduler** 放到 NVIDIA GPU 执行视角下重新理解。
+## 本章解决什么问题
+
+- 把前面学过的 Attention、Gated DeltaNet、MoE、MTP、Scheduler 放到 NVIDIA GPU 执行视角下重新理解。
+- 解释 HBM、SM、Tensor Core、CUDA kernel、MoE GEMM 和 attention backend 分别影响哪类瓶颈。
+- 帮你判断 prefill / decode / MoE / GDN 慢时应该看 compute、memory bandwidth、occupancy 还是通信。
+- 为第十二章按 vLLM 源码路径追踪 backend 和 scheduler 铺垫硬件语言。
 
 先给结论：
 
@@ -810,9 +814,9 @@ k=8,\quad H=2048
 | FlashAttention backend 的 KV cache update 使用 `slot_mapping` 写入 key/value cache | `vllm/v1/attention/backends/flash_attn.py` | `do_kv_cache_update` | 源码直接确认 | 是 |
 | FlashInfer backend 支持 FP16/BF16，并支持 fp8 KV cache dtype；支持 kernel block sizes `[16, 32, 64]` | `vllm/v1/attention/backends/flashinfer.py` | `FlashInferBackend` | 源码直接确认 | 是 |
 | vLLM v0.20.1 `fused_moe` 目录包含 router、experts、runner、prepare_finalize、all2all、flashinfer/cutlass MoE 等组件 | `vllm/model_executor/layers/fused_moe/` | directory structure | 源码直接确认 | 是 |
-| Qwen3.6 在你的 NVIDIA GPU 上实际选择 FlashAttention、FlashInfer、Triton 或其他 attention backend | 运行日志 / backend registry | 待运行确认 | 待源码确认 | 否 |
-| Qwen3.6 MoE 在你的 GPU 上实际选择的 runner/kernel/backend | `fused_moe/runner` 与运行日志 | 待运行确认 | 待源码确认 | 否 |
-| GDN kernel 在特定硬件上的 bottleneck 是 HBM、SM occupancy 还是 state layout | Nsight / profiling | N/A | 实验验证 | 否 |
+| Qwen3.6 在你的 NVIDIA GPU 上实际选择 FlashAttention、FlashInfer、Triton 或其他 attention backend | 运行日志 / backend registry | 待运行确认 | 待运行确认 | 否 |
+| Qwen3.6 MoE 在你的 GPU 上实际选择的 runner/kernel/backend | `fused_moe/runner` 与运行日志 | 待运行确认 | 待运行确认 | 否 |
+| GDN kernel 在特定硬件上的 bottleneck 是 HBM、SM occupancy 还是 state layout | Nsight / profiling | N/A | 需按环境验证 | 否 |
 
 ---
 

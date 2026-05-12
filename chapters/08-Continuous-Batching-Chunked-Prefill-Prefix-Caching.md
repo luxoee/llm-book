@@ -24,6 +24,13 @@ PagedAttention 用 blocks 管理 Gated Attention 的 K/V
 
 对固定案例 **Qwen/Qwen3.6-35B-A3B**，调度问题更尖锐：它原生上下文 262,144 tokens，结构是 `10 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE))`，包含 Gated DeltaNet、Gated Attention、MoE、MTP，并且是带 Vision Encoder 的 Causal LM；所以调度器不仅要面对普通 KV blocks，还要面对 hybrid / Mamba-like state、MoE dispatch、多模态 encoder budget 和 speculative tokens。([huggingface.co](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 解释 vLLM 每个 step 如何在 running / waiting requests 之间分配 token budget。
+- 说明 continuous batching、chunked prefill、prefix caching 分别解决哪个 serving 症状。
+- 帮你判断 TTFT、TPOT、queue time、prefix hit rate 和 KV usage 之间的关系。
+- 把第七章的 block 管理连接到第十二章的 scheduler 源码。
+
 ---
 
 ## 一、生活类比

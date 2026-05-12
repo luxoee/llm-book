@@ -4,6 +4,13 @@
 
 对固定案例 **Qwen/Qwen3.6-35B-A3B**，模型卡确认：它是 35B total / 3B activated 的模型，hidden size 2048，40 层，hidden layout 是 `10 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE))`；MoE 部分有 **256 experts**，每 token 激活 **8 routed experts + 1 shared expert**，expert intermediate dimension 是 **512**。这意味着 Qwen3.6 的每一层都不是传统 dense MLP，而是 attention/GDN 后接一个 sparse MoE block。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 解释 router、top-k、shared expert、expert dispatch 如何把 dense MLP 变成稀疏计算。
+- 帮你判断“每 token 激活 3B 参数”为什么不等于工程上只付出 3B dense 模型成本。
+- 说明 expert imbalance、dispatch buffer、MoE kernel 和 EP all-to-all 为什么会影响吞吐。
+- 为第十章的 Expert Parallel 和多卡通信建立 MoE 侧背景。
+
 ---
 
 ## 一、生活类比
@@ -689,7 +696,7 @@ E_{\text{shared}}(h)
 | `FusedMoE` 的 `top_k` 表示每 token 选择的 expert 数 | `vllm/model_executor/layers/fused_moe/layer.py` | `FusedMoE.__init__` docstring | 源码直接确认 | 是 |
 | `FusedMoE` 创建 fused MoE router，并把 `experts_per_token=top_k` 写入 `FusedMoEConfig` | `vllm/model_executor/layers/fused_moe/layer.py` | `create_fused_moe_router`, `FusedMoEConfig` | 源码直接确认 | 是 |
 | `FusedMoE` 支持 EP metadata，例如 `ep_size`、`ep_rank`、local experts、expert map | `vllm/model_executor/layers/fused_moe/layer.py` | `FusedMoE`, expert routing table helpers | 源码直接确认 | 是 |
-| Qwen3.6 在特定 NVIDIA GPU 上最终选择哪一种 MoE backend / kernel | `vllm/model_executor/layers/fused_moe/` | backend dispatch 相关 | 待源码确认 | 否 |
+| Qwen3.6 在特定 NVIDIA GPU 上最终选择哪一种 MoE backend / kernel | `vllm/model_executor/layers/fused_moe/` + 运行日志 | backend dispatch 相关 | 待运行确认 | 否 |
 | Qwen3.6 shared expert 与 routed expert 是否在当前配置下完全融合到同一个 kernel | `vllm/model_executor/layers/fused_moe/` | quant method / runner | 待源码确认 | 否 |
 | Expert parallel 下具体使用 all-to-all、DeepEP、NCCL 还是其他通信 backend | EP / distributed / fused_moe runner 源码 | 待展开 | 待源码确认 | 否 |
 

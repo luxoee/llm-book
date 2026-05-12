@@ -3,6 +3,13 @@
 > 本章先建立“传统 decoder-only LLM 推理”的骨架：**token → embedding → 多层 decoder → logits → sampling → 下一个 token → 循环**。
 > 但要始终记住：这只是骨架。固定案例 **Qwen/Qwen3.6-35B-A3B** 不是普通 Transformer Decoder，它是带 Vision Encoder 的 causal LM，语言主干包含 Gated DeltaNet、Gated Attention、MoE、MTP，并且是 35B 总参数、每 token 激活 3B、原生 262K 上下文的 hybrid 架构。模型卡明确给出 hidden size 2048、40 层、padded vocab 248,320，以及 `10 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE))` 的 hidden layout。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 建立最小推理闭环：从 token 到 logits，再从 sampling 回到下一个 token。
+- 明确 prefill 和 decode 的差异，为后续 KV cache、PagedAttention 和 scheduler 铺底。
+- 把普通 decoder-only baseline 和 Qwen3.6 hybrid 架构区分开，避免后续误用传统公式。
+- 读完本章后，你应该能解释一次 LLM 请求在 serving 系统里经历哪些阶段。
+
 ---
 
 ## 一、生活类比

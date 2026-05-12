@@ -3,6 +3,13 @@
 本章只把 **Qwen3.6-35B-A3B 中的 Gated Attention 层** 放到 Attention 数学框架里讲。
 请先记住边界：Qwen3.6 的 40 层不是 40 层普通 attention。模型卡给出的 hidden layout 是 `10 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE))`，因此可推算为 **30 个 Gated DeltaNet 层 + 10 个 Gated Attention 层**；Gated DeltaNet 不应被强行套成普通 softmax attention。Qwen3.6 的 Gated Attention 配置是 Q heads = 16、KV heads = 2、head dim = 256、RoPE dim = 64。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 用最小数学框架解释 Q/K/V、causal mask、softmax attention 和 RoPE。
+- 明确 Qwen3.6 中只有 Gated Attention 层适合套普通 KV attention 账本。
+- 说明 GQA、RoPE dim、output gate 会如何影响 KV cache、backend 和显存估算。
+- 为第六章的长上下文显存问题建立公式基础。
+
 ---
 
 ## 一、生活类比

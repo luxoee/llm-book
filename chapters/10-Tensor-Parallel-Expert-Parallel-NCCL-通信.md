@@ -20,6 +20,13 @@ Qwen3.6 特殊点:
 
 Qwen3.6-35B-A3B 的模型卡确认它是 35B total / 3B activated，hidden size 2048，40 层，MoE 为 256 experts，每 token 激活 8 routed experts + 1 shared expert；vLLM recipe 给出的 Qwen3.6 基础 serving 命令使用 `--tensor-parallel-size 8 --max-model-len 262144 --reasoning-parser qwen3`。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 解释 Tensor Parallel、Expert Parallel 和 NCCL collective 分别解决什么问题、引入什么成本。
+- 帮你判断多卡不是简单“显存相加”，还要看 KV heads、MoE experts、all-reduce 和 all-to-all。
+- 说明为什么 EP 是否优于纯 TP 必须结合拓扑、workload 和 backend 实测。
+- 为第十一章从 GPU kernel 视角分析性能瓶颈做铺垫。
+
 ---
 
 ## 一、生活类比
@@ -886,9 +893,9 @@ H
 | vLLM 官方 EP 部署文档说明 EP layers 会在 EP ranks 上分片，attention layers 根据 TP size 复制或切分 | vLLM Expert Parallel Deployment docs | Layer Behavior with EP Enabled | 官方文档确认 | 是 |
 | vLLM 官方 EP 文档列出 all-to-all backend，包括 allgather/reducescatter、DeepEP、FlashInfer NVLink backend | vLLM Expert Parallel Deployment docs | Backend Selection Guide | 官方文档确认 | 是 |
 | vLLM 官方 EP 文档明确 EP 是实验性功能，参数名和默认值可能变化 | vLLM Expert Parallel Deployment docs | Warning | 官方文档确认 | 是 |
-| Qwen3.6 在 v0.20.1 下开启 EP 后最终选择的 all-to-all backend | `vllm/model_executor/layers/fused_moe/runner`, runtime config | 待展开 | 待源码确认 | 否 |
+| Qwen3.6 在 v0.20.1 下开启 EP 后最终选择的 all-to-all backend | `vllm/model_executor/layers/fused_moe/runner`, runtime config | 待运行确认 | 待运行确认 | 否 |
 | Qwen3.6 shared expert 在 EP 下是否与 routed experts 完全融合到同一个 kernel | `fused_moe` backend / quant method | 待展开 | 待源码确认 | 否 |
-| 具体 NVIDIA 拓扑下 NCCL all-reduce / all-to-all 是否成为瓶颈 | 运行日志 / profiler | N/A | 实验验证 | 否 |
+| 具体 NVIDIA 拓扑下 NCCL all-reduce / all-to-all 是否成为瓶颈 | 运行日志 / profiler | N/A | 需按环境验证 | 否 |
 
 ---
 

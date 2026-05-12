@@ -10,6 +10,13 @@ vLLM 的答案是：**把 KV Cache 像操作系统虚拟内存一样分页管理
 
 但对 **Qwen/Qwen3.6-35B-A3B** 要先划边界：PagedAttention 主要解释 **Gated Attention 层的 KV cache**；Qwen3.6 的 40 层结构是 `10 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE))`，所以不能把 30 个 Gated DeltaNet 层也强行套进普通 PagedAttention 的 K/V cache 模型里。Qwen3.6 的模型卡确认它有 40 层、10 个重复周期、Gated Attention 配置为 16 Q heads / 2 KV heads / head dim 256 / RoPE dim 64，原生上下文 262,144 tokens。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 解释为什么 KV cache 不能简单按每条请求连续大数组分配。
+- 建立 logical block、physical block、block table、slot mapping 的 serving 心智模型。
+- 帮你理解 prefix caching、preemption、chunked prefill 为什么都依赖 block 管理。
+- 为第八章把 PagedAttention 接入 scheduler 做准备。
+
 ---
 
 ## 一、生活类比

@@ -18,6 +18,13 @@
 
 对传统 LLM 来说，这一章主要讲 token、embedding、logits、softmax、采样。对 **Qwen/Qwen3.6-35B-A3B** 来说，还必须额外注意两点：第一，它是 **Causal Language Model with Vision Encoder**，因此输入不只有纯文本 token；第二，它的 token embedding 和 LM output 都是 **248,320 padded**，hidden size 是 **2048**，所以 logits 维度非常大，sampling 本身也会成为真实 serving 中不可忽略的计算环节。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 解释请求如何从文本/多模态输入变成 token ids 和 embeddings。
+- 说明 logits、temperature、top-k、top-p、penalty 和 logprobs 为什么会影响 serving 成本。
+- 帮你判断采样慢、logprobs 慢、vocab 很大时应该看哪些指标和源码路径。
+- 为下一章的 attention 输入形状和后续 scheduler 的 token 预算建立入口/出口概念。
+
 ---
 
 ## 一、生活类比

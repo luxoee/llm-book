@@ -17,6 +17,13 @@ Request
 
 对固定案例 **Qwen/Qwen3.6-35B-A3B**，Qwen 模型卡确认它是带 Vision Encoder 的 causal LM，语言主干为 `10 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE))`，共 40 层，Gated Attention 是 16 Q heads / 2 KV heads / head dim 256 / RoPE dim 64，MoE 是 256 experts、8 routed + 1 shared expert，原生上下文 262,144 tokens。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 把前面章节的概念落到 vLLM v0.20.1 的 scheduler、KV cache manager、block pool 和 attention backend 源码路径上。
+- 帮你从日志或 profiler 结果反查应该读哪段源码，而不是在仓库里盲搜。
+- 说明 vLLM V1 中 prefill/decode、prefix cache、lookahead slots、GDN state 之间的接口边界。
+- 为第十三章把源码理解转成部署配置决策做准备。
+
 ---
 
 ## 一、生活类比
@@ -778,8 +785,8 @@ T_{\text{cached}}
 | `Qwen3NextSparseMoeBlock` 创建 router、shared expert 和 FusedMoE | `vllm/model_executor/models/qwen3_next.py` | `Qwen3NextSparseMoeBlock` | 源码直接确认 | 是 |
 | Qwen3.6 结构为 Vision Encoder + Gated DeltaNet + Gated Attention + MoE + MTP，原生上下文 262K | Hugging Face model card | Model Overview | 官方文档确认 | 是 |
 | Qwen3.6 vLLM recipe 提供 TP=8、262144 max model len 和 MTP speculative decoding 示例 | vLLM Qwen recipe | serving commands | recipe 确认 | 是 |
-| 当前机器上实际选择 FlashAttention、FlashInfer、Triton 或其他 backend | 运行日志 / profiler | 待运行确认 | 待源码确认 | 否 |
-| 当前机器上 GDN prefill backend 实际为 FlashInfer 还是 Triton/FLA | 运行日志 / `gdn_prefill_backend` | 待运行确认 | 待源码确认 | 否 |
+| 当前机器上实际选择 FlashAttention、FlashInfer、Triton 或其他 backend | 运行日志 / profiler | 待运行确认 | 待运行确认 | 否 |
+| 当前机器上 GDN prefill backend 实际为 FlashInfer 还是 Triton/FLA | 运行日志 / `gdn_prefill_backend` | 待运行确认 | 待运行确认 | 否 |
 | Qwen3.6 MTP 在 v0.20.1 中 `method="mtp"` 与 `method="qwen3_next_mtp"` 的完整解析差异 | speculative decoding config 源码 | 待展开 | 待源码确认 | 否 |
 
 ---

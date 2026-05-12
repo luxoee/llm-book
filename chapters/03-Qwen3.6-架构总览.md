@@ -1,7 +1,11 @@
 # 第三章：Qwen3.6 架构总览
-## Gated DeltaNet、Gated Attention、MoE、MTP
 
-本章目标：把第二章的“传统 LLM 推理骨架”替换成 **Qwen/Qwen3.6-35B-A3B 的真实结构地图**。
+## 本章解决什么问题
+
+- 把第二章的传统 LLM 推理骨架替换成 Qwen3.6 的真实结构地图。
+- 解释 Gated DeltaNet、Gated Attention、MoE、MTP 分别改变了 serving 的哪一部分。
+- 建立后续显存估算、MoE dispatch、多卡通信和源码阅读都会复用的模型总图。
+- 读完本章后，你应该能说明为什么不能把 Qwen3.6 当成 40 层普通 Transformer Decoder。
 
 先给一句总括：
 

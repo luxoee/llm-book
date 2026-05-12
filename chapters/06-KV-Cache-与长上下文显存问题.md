@@ -3,6 +3,13 @@
 本章开始进入真正的推理显存账本。
 对传统 Transformer，KV Cache 是 decode 阶段加速的核心；对 **Qwen/Qwen3.6-35B-A3B**，必须更谨慎：它的 40 层不是 40 层 full attention，而是 `10 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE))`，因此普通 KV Cache 公式主要适用于其中的 **10 个 Gated Attention 层**；另外 30 个 Gated DeltaNet 层要按 Mamba/GDN-style state 单独理解。Qwen3.6 的 Gated Attention 是 16 Q heads、2 KV heads、head dim 256、RoPE dim 64，原生上下文长度 262,144 tokens。([Hugging Face](https://huggingface.co/Qwen/Qwen3.6-35B-A3B))
 
+## 本章解决什么问题
+
+- 解释为什么长上下文 serving 的瓶颈常常从权重显存转向 cache / state 显存。
+- 区分 Gated Attention 的 KV cache 和 Gated DeltaNet 的 state/cache，不把两者混算。
+- 帮你判断 max model len、并发、output length、MTP lookahead 对 OOM 的影响。
+- 为第七章的 PagedAttention 和 block 管理说明“为什么必须分页”。
+
 ---
 
 ## 一、生活类比
